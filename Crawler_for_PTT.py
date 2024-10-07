@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import os
+from openpyxl import load_workbook
 
 # 設定 PTT 看板的 URL (這裡以 Gossiping 板為例)
 base_url = "https://www.ptt.cc"
@@ -16,7 +17,7 @@ save_path = "C:\\Users\\T14 Gen 3\\OneDrive\\個人實驗室\\my_ptt_posts.xlsx"
 data = []
 
 # 設定爬取的頁數 (可以自行調整)
-max_pages = 10
+max_pages = 5
 current_page = 0
 
 def get_post_content(link):
@@ -58,8 +59,7 @@ while current_page < max_pages:
                 title = a_tag.text.strip()  # 標題
                 link = base_url + a_tag['href']  # 連結
                 # 測試抓取某篇文章的內容
-                sample_link = f"{link}"
-                content = get_post_content(sample_link)
+                content = get_post_content(link)
 
                 # 擷取發佈時間
                 date = post.find('div', class_='date').text.strip()  # 發佈日期
@@ -87,8 +87,16 @@ if data:
 
     # 如果檔案已經存在，則附加新資料
     if os.path.exists(save_path):
-        df_new.to_excel(save_path, index=False, engine='openpyxl', header=False, startrow=len(df_existing)+1)
+        # 使用 openpyxl 來追加資料
+        with pd.ExcelWriter(save_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            # 獲取當前表單的最大行數，追加資料時從該行開始
+            existing_workbook = load_workbook(save_path)
+            sheet = existing_workbook.active
+            max_row = sheet.max_row
+
+            df_new.to_excel(writer, index=False, header=False, startrow=max_row)
     else:
+        # 如果檔案不存在，則直接創建新檔案並寫入資料
         df_new.to_excel(save_path, index=False, engine='openpyxl')
 
     print(f"成功將新資料追加至 {save_path}")
