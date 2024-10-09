@@ -20,19 +20,22 @@ max_pages = 10
 current_page = 0
 
 def get_post_content(link):
-    # 發送 GET 請求並加入 cookies
-    response = requests.get(link, cookies=cookies)
-    
-    # 確保請求成功
-    if response.status_code == 200:
+    try:
+        # 發送 GET 請求並加入 cookies
+        response = requests.get(link, cookies=cookies)
+        response.raise_for_status()  # 如果請求有錯誤，拋出異常
+        
+        # 使用 BeautifulSoup 解析文章內容
         soup = BeautifulSoup(response.text, 'html.parser')
-        # 取得文章內容
         content = soup.find('div', id='main-content')
+        
         if content:
             # 移除不需要的標籤（文章下方的推文等）
             for tag in content.find_all(['span', 'div']):
                 tag.extract()
             return content.text.strip()
+    except requests.RequestException as e:
+        print(f"抓取文章內容時發生錯誤: {e}")
     return None
 
 # 如果已經有檔案存在，讀取已爬取的資料
@@ -45,9 +48,11 @@ else:
     existing_data = []
 
 while current_page < max_pages:
-    # 發送 GET 請求
-    response = requests.get(base_url + board_url, cookies=cookies)
-    if response.status_code == 200:
+    try:
+        # 發送 GET 請求
+        response = requests.get(base_url + board_url, cookies=cookies)
+        response.raise_for_status()  # 確保請求成功，否則拋出異常
+        
         # 使用 BeautifulSoup 解析 HTML
         soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -83,8 +88,8 @@ while current_page < max_pages:
 
         # 避免過快爬取，設定延遲
         time.sleep(2)
-    else:
-        print(f"無法獲取頁面，狀態碼: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"抓取頁面時發生錯誤: {e}")
         break
 
 # 將新爬取的資料合併至已有資料中
