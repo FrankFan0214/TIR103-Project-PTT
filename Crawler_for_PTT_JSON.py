@@ -65,7 +65,12 @@ while current_page < max_pages:
                 # 擷取發佈時間
                 date = post.find('div', class_='date').text.strip()  # 發佈日期
                 if title not in existing_titles:
-                    data.append({"發佈日期": date, "標題": title, "內容": content, "連結": link})
+                    # 在每筆資料最前方加入 "資料標籤" 欄位
+                    data.append({"資料標籤": f"第{len(existing_data) + len(data) + 1}筆", 
+                                 "發佈日期": date, 
+                                 "標題": title, 
+                                 "內容": content, 
+                                 "連結": link})
                     existing_titles.add(title)  # 加入已保存的標題集合
 
         # 找到「上一頁」的連結
