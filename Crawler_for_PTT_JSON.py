@@ -10,7 +10,7 @@ board_url = "/bbs/Gossiping/index.html"
 cookies = {'over18': '1'}  # PTT 需要加入年齡確認的 cookie
 
 # 指定保存 JSON 檔案的路徑
-save_path = "C:\\Users\\T14 Gen 3\\OneDrive\\個人實驗室\\my_ptt_posts.json"
+save_path = "C:\\Users\\T14 Gen 3\\Desktop\\my_ptt_posts.json"
 
 # 儲存所有文章的標題、連結和時間
 data = []
@@ -29,11 +29,39 @@ def get_post_content(link):
         soup = BeautifulSoup(response.text, 'html.parser')
         content = soup.find('div', id='main-content')
         
+        # 取得作者資訊
+        meta_info = soup.find_all('span', class_='article-meta-value')
+        if len(meta_info) > 0:
+            author = meta_info[0].text.strip()  # 文章作者
+        else:
+            author = "未知"  # 當找不到作者時
+
+        # 計算推、噓、箭頭數
+        pushes = soup.find_all('div', class_='push')
+        push_count = 0
+        boo_count = 0
+        arrow_count = 0
+
+        for push in pushes:
+            push_tag = push.find('span', class_='push-tag').text.strip()
+            if push_tag == '推':
+                push_count += 1
+            elif push_tag == '噓':
+                boo_count += 1
+            else:
+                arrow_count += 1
+
         if content:
             # 移除不需要的標籤（文章下方的推文等）
             for tag in content.find_all(['span', 'div']):
                 tag.extract()
-            return content.text.strip()
+            return {
+                "作者": author,
+                "內容": content.text.strip(),
+                "推": push_count,
+                "噓": boo_count,
+                "箭頭": arrow_count
+            }
     except requests.RequestException as e:
         print(f"抓取文章內容時發生錯誤: {e}")
     return None
@@ -65,17 +93,23 @@ while current_page < max_pages:
                 title = a_tag.text.strip()  # 標題
                 link = base_url + a_tag['href']  # 連結
                 # 測試抓取某篇文章的內容
-                content = get_post_content(link)
+                post_data = get_post_content(link)
 
                 # 擷取發佈時間
                 date = post.find('div', class_='date').text.strip()  # 發佈日期
-                if title not in existing_titles:
+                if title not in existing_titles and post_data:
                     # 在每筆資料最前方加入 "資料標籤" 欄位
-                    data.append({"資料標籤": f"第{len(existing_data) + len(data) + 1}筆", 
-                                 "發佈日期": date, 
-                                 "標題": title, 
-                                 "內容": content, 
-                                 "連結": link})
+                    data.append({
+                        "資料標籤": f"第{len(existing_data) + len(data) + 1}筆", 
+                        "發佈日期": date, 
+                        "標題": title, 
+                        "作者": post_data["作者"],
+                        "內容": post_data["內容"],
+                        "推": post_data["推"],
+                        "噓": post_data["噓"],
+                        "箭頭": post_data["箭頭"],
+                        "連結": link
+                    })
                     existing_titles.add(title)  # 加入已保存的標題集合
 
         # 找到「上一頁」的連結
