@@ -3,7 +3,9 @@ from bs4 import BeautifulSoup
 import time
 import json
 from confluent_kafka import Producer
-from datetime import datetime
+from datetime import date, datetime, timedelta
+
+times = 0
 
 # 用來接收從Consumer instance發出的error訊息
 def error_cb(err):
@@ -88,9 +90,18 @@ def convert_date(date_str):
         print(f"日期轉換失敗: {e}")
         return None
 
-stop_date = datetime.strptime('10/01', '%m/%d')
+# 取得今天的日期
+today = date.today()
 
-while True:
+# 計算前一天的日期
+yesterday = today - timedelta(days=1)
+
+# 格式化日期為 "MM/DD" 格式
+formatted_date = yesterday.strftime("%m/%d")
+
+stop_date = datetime.strptime(formatted_date,"%m/%d")
+
+while times <= 10:
     try:
         response = requests.get(base_url + board_url, cookies=cookies)
         response.raise_for_status()
@@ -107,9 +118,14 @@ while True:
                 post_date = convert_date(date_str)
 
                 # 停止抓取條件
-                if post_date and post_date < stop_date:
-                    print(f"已達到指定日期：{date_str}，停止抓取")
-                    break
+                if  post_date < stop_date:
+                    times = times + 1
+                    if times > 10:
+                        print(f"評估後續文章已晚於前一日，自動終止抓取")
+                        break
+                    else:
+                        break
+                
 
                 if post_data:
                     post_document = {
