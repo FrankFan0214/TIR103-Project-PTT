@@ -80,7 +80,7 @@ def get_post_content(link):
             }
     except requests.RequestException as e:
         print(f"抓取文章內容時發生錯誤: {e}")
-    return None
+    return {}
 
 # 日期格式轉換函數
 def convert_date(date_str):
@@ -88,7 +88,7 @@ def convert_date(date_str):
         return datetime.strptime(date_str, '%m/%d')
     except ValueError as e:
         print(f"日期轉換失敗: {e}")
-        return None
+        return {}
 
 # 取得今天的日期
 today = date.today()
