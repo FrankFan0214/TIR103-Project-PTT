@@ -4,6 +4,7 @@ import time
 import json
 from confluent_kafka import Producer
 from datetime import date, datetime, timedelta
+import gc
 
 times = 0
 
@@ -48,7 +49,11 @@ def get_post_content(link):
         comments = []
 
         for push in pushes:
-            push_tag = push.find('span', class_='push-tag').text.strip()
+            push_tag_element = push.find('span', class_='push-tag')
+            if push_tag_element:
+                push_tag = push_tag_element.text.strip()
+            else:
+                break  
             push_user = push.find('span', class_='push-userid').text.strip()
             push_content = push.find('span', class_='push-content').text.strip()
             push_time = push.find('span', class_='push-ipdatetime').text.strip()
@@ -152,6 +157,8 @@ while times <= 10:
         btn_group = soup.find('div', class_='btn-group btn-group-paging')
         prev_link = btn_group.find_all('a')[1]['href']
         board_url = prev_link
+        del soup, posts, response, btn_group, prev_link
+        gc.collect()  # 強制執行垃圾回收
         time.sleep(10)
     except requests.RequestException as e:
         print(f"抓取頁面時發生錯誤: {e}")
